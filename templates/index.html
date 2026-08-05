@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroScan AI — Brain Tumor Detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-deep: #002E5D;
+    --blue-light: #2774ae;
+    --teal: #14b8a6;
+    --bg: #f2f6fb;
+    --card: #ffffff;
+    --text: #1b2530;
+    --muted: #64748b;
+    --danger-bg: #fee2e2;
+    --danger-text: #991b1b;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  h1, h2, .predicted-class, .brand {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+  }
+
+  /* ---------------- Header ---------------- */
+  header {
+    background: #2774ae; /* fallback */
+    background: -webkit-linear-gradient(to right, #002E5D, #002E5D, #2774ae);
+    background: linear-gradient(to right, #002E5D, #002E5D, #2774ae);
+    color: #fff;
+    padding: 44px 20px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(255,255,255,0.08) 0, transparent 40%),
+      radial-gradient(circle at 85% 70%, rgba(20,184,166,0.15) 0, transparent 45%);
+    pointer-events: none;
+  }
+
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .brain-icon {
+    width: 42px;
+    height: 42px;
+    animation: pulse-glow 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 0px rgba(20,184,166,0.6)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 10px rgba(20,184,166,0.9)); transform: scale(1.06); }
+  }
+
+  header h1 {
+    margin: 14px 0 6px;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    position: relative;
+    z-index: 1;
+  }
+
+  header p {
+    margin: 0;
+    opacity: .85;
+    font-size: .98rem;
+    font-weight: 400;
+    position: relative;
+    z-index: 1;
+  }
+
+  .badges {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+  }
+
+  .badge {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.22);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: .74rem;
+    letter-spacing: .03em;
+    font-weight: 500;
+  }
+
+  /* ---------------- Layout ---------------- */
+  .container {
+    max-width: 720px;
+    margin: -34px auto 40px;
+    padding: 0 16px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 14px 34px rgba(0,46,93,0.12);
+    padding: 30px;
+    margin-bottom: 22px;
+    animation: rise-in .5s ease;
+  }
+
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------------- Upload box ---------------- */
+  .upload-box {
+    border: 2px dashed #c7d4e3;
+    border-radius: 14px;
+    padding: 32px 20px;
+    text-align: center;
+    transition: border-color .25s, background .25s;
+    cursor: pointer;
+    position: relative;
+    display: block;
+  }
+
+  .upload-box.dragover,
+  .upload-box:hover {
+    border-color: var(--teal);
+    background: #f4fdfc;
+  }
+
+  .upload-icon {
+    width: 46px;
+    height: 46px;
+    margin: 0 auto 10px;
+    color: var(--blue-light);
+  }
+
+  .upload-box p.main-txt {
+    margin: 0 0 4px;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text);
+  }
+
+  .upload-box p.sub-txt {
+    margin: 0;
+    font-size: .82rem;
+    color: var(--muted);
+  }
+
+  input[type="file"] { display: none; }
+
+  #filename-display {
+    margin-top: 12px;
+    font-size: .85rem;
+    color: var(--teal);
+    font-weight: 500;
+    min-height: 1.2em;
+  }
+
+  button.predict-btn {
+    background: linear-gradient(to right, #002E5D, #2774ae);
+    color: #fff;
+    border: none;
+    padding: 13px 30px;
+    border-radius: 9px;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: 'Space Grotesk', sans-serif;
+    cursor: pointer;
+    margin-top: 18px;
+    width: 100%;
+    transition: transform .15s, box-shadow .15s;
+    letter-spacing: .01em;
+  }
+
+  button.predict-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0,46,93,0.25);
+  }
+
+  button.predict-btn:disabled {
+    opacity: .7;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .flash {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    padding: 11px 14px;
+    border-radius: 9px;
+    margin-bottom: 18px;
+    font-size: .88rem;
+    font-weight: 500;
+  }
+
+  /* ---------------- Result card ---------------- */
+  .result-title {
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .predicted-class {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--navy-deep);
+    margin: 6px 0 2px;
+  }
+
+  .confidence {
+    color: var(--teal);
+    font-weight: 600;
+    margin-bottom: 18px;
+    font-size: .95rem;
+  }
+
+  /* ---------------- Scan image + animation ---------------- */
+  .scan-frame {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 6px;
+    background: #0b1f3a;
+    box-shadow: 0 8px 22px rgba(0,46,93,0.18);
+  }
+
+  .scan-frame img.preview {
+    display: block;
+    width: 100%;
+    border-radius: 12px;
+    opacity: 0.96;
+  }
+
+  .scan-frame::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    top: 0;
+    background: linear-gradient(90deg, transparent, #5eead4, #ffffff, #5eead4, transparent);
+    box-shadow: 0 0 14px 3px rgba(94,234,212,0.8);
+    animation: scan-move 2.6s linear infinite;
+    animation-iteration-count: 3;
+  }
+
+  .scan-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(20,184,166,0.06) 0px, rgba(20,184,166,0.06) 1px, transparent 1px, transparent 4px);
+    pointer-events: none;
+  }
+
+  @keyframes scan-move {
+    0% { top: 0%; }
+    50% { top: 98%; }
+    100% { top: 0%; }
+  }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: .88rem; }
+  td { padding: 8px 0; border-bottom: 1px solid #eef2f6; }
+  td.cls-name { font-weight: 500; text-transform: capitalize; }
+  .bar-bg { background: #eef2f6; border-radius: 6px; overflow: hidden; height: 8px; width: 100%; }
+  .bar-fill {
+    background: linear-gradient(to right, #002E5D, #2774ae, #14b8a6);
+    height: 100%;
+    border-radius: 6px;
+    width: 0;
+    animation: fill-bar 1s ease forwards;
+  }
+
+  @keyframes fill-bar {
+    from { width: 0; }
+  }
+
+  .disclaimer {
+    font-size: .76rem;
+    color: var(--muted);
+    margin-top: 20px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* ---------------- Loader overlay ---------------- */
+  #loader-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,20,45,0.72);
+    backdrop-filter: blur(3px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  #loader-overlay.active { display: flex; }
+
+  .loader-scan {
+    width: 92px;
+    height: 92px;
+    border-radius: 14px;
+    border: 2px solid rgba(94,234,212,0.35);
+    position: relative;
+    overflow: hidden;
+    background: rgba(0,46,93,0.4);
+  }
+
+  .loader-scan::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #5eead4, #ffffff, #5eead4, transparent);
+    box-shadow: 0 0 12px 4px rgba(94,234,212,0.9);
+    animation: scan-move 1.3s linear infinite;
+  }
+
+  .loader-text {
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    font-size: .95rem;
+    letter-spacing: .02em;
+    text-align: center;
+  }
+
+  .loader-text span {
+    display: inline-block;
+    animation: dot-blink 1.4s infinite;
+  }
+  .loader-text span:nth-child(2) { animation-delay: .2s; }
+  .loader-text span:nth-child(3) { animation-delay: .4s; }
+
+  @keyframes dot-blink {
+    0%, 80%, 100% { opacity: 0; }
+    40% { opacity: 1; }
+  }
+
+  footer.credits {
+    text-align: center;
+    font-size: .76rem;
+    color: var(--muted);
+    padding-bottom: 30px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-mark">
+    <svg class="brain-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9.5 2.5C7 2.5 5 4.5 5 7c0 .7.15 1.35.42 1.94C4.55 9.5 4 10.55 4 11.75c0 1.1.5 2.08 1.28 2.73C5.1 14.9 5 15.32 5 15.75 5 17.55 6.45 19 8.25 19c.28 0 .55-.03.8-.1C9.5 20.15 10.6 21 12 21s2.5-.85 2.95-2.1c.25.07.52.1.8.1C17.55 19 19 17.55 19 15.75c0-.43-.1-.85-.28-1.22.78-.65 1.28-1.63 1.28-2.73 0-1.2-.55-2.25-1.42-2.81.27-.59.42-1.24.42-1.94 0-2.5-2-4.5-4.5-4.5-.9 0-1.74.26-2.45.72A3.98 3.98 0 0 0 9.5 2.5z" stroke="#5eead4" stroke-width="1.3" stroke-linejoin="round"/>
+      <path d="M12 3v18M9 7c1 1 1 2 0 3M15 7c-1 1-1 2 0 3M8 12c1 .5 1 1.5 0 2M16 12c-1 .5-1 1.5 0 2" stroke="#5eead4" stroke-width="1" stroke-linecap="round"/>
+    </svg>
+    <span class="brand" style="font-size:.85rem; letter-spacing:.12em; opacity:.75; text-transform:uppercase;">NeuroScan AI</span>
+  </div>
+  <h1>Brain Tumor Detection System</h1>
+  <p>Upload an MRI scan for instant AI-powered classification</p>
+  <div class="badges">
+    <span class="badge">HOG + LBP + GLCM Features</span>
+    <span class="badge">SVM Classifier</span>
+    <span class="badge">Instant Results</span>
+  </div>
+</header>
+
+<div class="container">
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for m in messages %}
+        <div class="flash">{{ m }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="card">
+    <form id="predict-form" action="/predict" method="post" enctype="multipart/form-data">
+      <label class="upload-box" id="upload-box" for="file-input">
+        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="main-txt">Click or drag an MRI image here</p>
+        <p class="sub-txt">Supports JPG, PNG, BMP, TIFF</p>
+        <div id="filename-display"></div>
+      </label>
+      <input id="file-input" type="file" name="image" accept="image/*" required>
+      <button class="predict-btn" type="submit" id="predict-btn">Analyze Scan</button>
+    </form>
+  </div>
+
+  {% if prediction %}
+  <div class="card">
+    <div class="result-title">Prediction Result</div>
+    <div class="predicted-class">{{ prediction }}</div>
+    {% if confidence %}
+      <div class="confidence">Confidence: {{ "%.2f"|format(confidence) }}%</div>
+    {% endif %}
+
+    {% if image_url %}
+      <div class="scan-frame">
+        <img class="preview" src="{{ image_url }}" alt="Uploaded MRI">
+      </div>
+    {% endif %}
+
+    {% if class_probabilities %}
+      <table>
+        {% for cls, prob in class_probabilities.items() %}
+        <tr>
+          <td class="cls-name" style="width:35%">{{ cls }}</td>
+          <td style="width:15%">{{ prob }}%</td>
+          <td>
+            <div class="bar-bg"><div class="bar-fill" style="width:{{ prob }}%"></div></div>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <p class="disclaimer">NeuroScan AI is an educational/demo tool and is not a substitute for professional medical diagnosis. Always consult a qualified radiologist or physician.</p>
+
+</div>
+
+<footer class="credits">Powered by HOG · LBP · GLCM feature extraction + SVM</footer>
+
+<!-- Loader overlay shown while the server processes the scan -->
+<div id="loader-overlay">
+  <div class="loader-scan"></div>
+  <div class="loader-text">Analyzing MRI scan<span>.</span><span>.</span><span>.</span></div>
+</div>
+
+<script>
+  const fileInput = document.getElementById('file-input');
+  const uploadBox = document.getElementById('upload-box');
+  const filenameDisplay = document.getElementById('filename-display');
+  const form = document.getElementById('predict-form');
+  const predictBtn = document.getElementById('predict-btn');
+  const loaderOverlay = document.getElementById('loader-overlay');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+      filenameDisplay.textContent = "Selected: " + fileInput.files[0].name;
+    }
+  });
+
+  // Drag & drop support
+  ['dragenter', 'dragover'].forEach(evt => {
+    uploadBox.addEventListener(evt, (e) => {
+      e.preventDefault();
+      uploadBox.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(evt => {
+    uploadBox.addEventListener(evt, (e) => {
+      e.preventDefault();
+      uploadBox.classList.remove('dragover');
+    });
+  });
+
+  uploadBox.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    if (dt.files.length > 0) {
+      fileInput.files = dt.files;
+      filenameDisplay.textContent = "Selected: " + dt.files[0].name;
+    }
+  });
+
+  // Show loader while the server processes the request
+  form.addEventListener('submit', () => {
+    if (fileInput.files.length === 0) return;
+    predictBtn.disabled = true;
+    predictBtn.textContent = "Analyzing...";
+    loaderOverlay.classList.add('active');
+  });
+</script>
+
+</body>
+</html>
